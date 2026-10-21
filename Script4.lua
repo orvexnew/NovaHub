@@ -33,7 +33,7 @@ local COOLDOWN_LOCAL = 5
 local politicoSelecionado = ""
 
 -- 1. Inicializa a biblioteca Rayfield Gen2
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu"))()
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
 -- 2. Janela Principal
 local Window = Rayfield:CreateWindow({
