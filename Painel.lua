@@ -19,7 +19,7 @@ local function enviarComandoRede(alvoNome, comando, argumento)
     CanalRedeOrvex.Value = string.format("%s|%s|%s|%s", tostring(alvoNome), tostring(comando), tostring(argumento), tostring(os.clock()))
 end
 
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu"))()
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
 local Window = Rayfield:CreateWindow({
     Name = "ORVEX | ADMIN PAINEL",
