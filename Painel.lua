@@ -47,7 +47,7 @@ local function enviarComandoRede(cmd, arg, forcarSemAlvo)
     end
 end
 
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu"))()
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 local Window = Rayfield:CreateWindow({Name = "ORVEX | ADMIN PAINEL", Subtitle = "Gerenciamento Otimizado", Theme = "Default"})
 local TabMonitor = Window:CreateTab({ Name = "Monitor", Icon = "rbxassetid://100604009889706" })
 local TabTroll = Window:CreateTab({ Name = "Troll", Icon = "rbxassetid://10651147057" })
