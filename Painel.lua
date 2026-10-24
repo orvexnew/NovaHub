@@ -50,7 +50,7 @@ local function enviarComandoRede(cmd, arg, forcarSemAlvo)
     end
 end
 
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu"))()
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 local Window = Rayfield:CreateWindow({
     name = "ORVEX | ADMIN PAINEL", 
     subtitle = "Gerenciamento Otimizado", 
