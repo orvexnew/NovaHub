@@ -10,10 +10,11 @@ local clientesAtivos = {}
 local usuarioSelecionadoTroll = ""
 local textoFakeMensagem = ""
 
+-- Escuta os retornos "new123" disparados apenas pelos scripts legítimos
 TextChatService.OnIncomingMessage = function(mensagemObj)
     local texto = mensagemObj.Text
     local remetente = mensagemObj.TextSource
-    if texto == "[ORVEX-PING]" and remetente then
+    if texto == "new123" and remetente then
         local playerInstancia = Players:GetPlayerByUserId(remetente.UserId)
         if playerInstancia and playerInstancia ~= jogador then
             clientesAtivos[playerInstancia.Name] = os.clock()
@@ -24,7 +25,7 @@ end
 
 local function obterListaJogadoresDedicada()
     local lista = {}
-    local tempoLimite = os.clock() - 7
+    local tempoLimite = os.clock() - 15 -- Janela de tolerância estendida após a verificação manual
     for nome, t in pairs(clientesAtivos) do
         if Players:FindFirstChild(nome) and t > tempoLimite then
             table.insert(lista, nome)
@@ -36,21 +37,32 @@ local function obterListaJogadoresDedicada()
     return lista
 end
 
-local function enviarComandoRede(cmd, arg)
-    if usuarioSelecionadoTroll ~= "" and usuarioSelecionadoTroll ~= "Nenhum usuário detectado" and canalGeral then
-        pcall(function()
-            canalGeral:SendAsync(string.format("[ORVEX-CMD] %s | %s", cmd, arg))
-        end)
+local function enviarComandoRede(cmd, arg, forcarSemAlvo)
+    if (usuarioSelecionadoTroll ~= "" and usuarioSelecionadoTroll ~= "Nenhum usuário detectado") or forcarSemAlvo then
+        if canalGeral then
+            pcall(function()
+                canalGeral:SendAsync(string.format("[ORVEX-CMD] %s | %s", cmd, arg))
+            end)
+        end
     end
 end
 
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
-local Window = Rayfield:CreateWindow({Name = "ORVEX | ADMIN PAINEL", Subtitle = "Gerenciamento Moderno", Theme = "Default"})
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu"))()
+local Window = Rayfield:CreateWindow({Name = "ORVEX | ADMIN PAINEL", Subtitle = "Gerenciamento Otimizado", Theme = "Default"})
 local TabMonitor = Window:CreateTab({ Name = "Monitor", Icon = "rbxassetid://100604009889706" })
 local TabTroll = Window:CreateTab({ Name = "Troll", Icon = "rbxassetid://10651147057" })
 
+TabMonitor:CreateSection({ Name = "Gerenciamento e Varredura Manual" })
+TabMonitor:CreateButton({
+    Name = "Verificar Rede (Detectar Usuários)",
+    Callback = function()
+        enviarComandoRede("SolicitarVerificacao", "true", true)
+        Rayfield:Notify({Title = "Varredura", Content = "Sinal de checagem enviado. Aguardando retornos...", Duration = 3})
+    end
+})
+
 local LabelContador = TabMonitor:CreateText({ Name = "Contador", Text = "Usuários com script ativo: 0" })
-local LabelLista = TabMonitor:CreateText({ Name = "Usuários Online", Text = "Sincronizando pelo TextChatService..." })
+local LabelLista = TabMonitor:CreateText({ Name = "Usuários Online", Text = "Aperte em Verificar Rede para escanear." })
 
 local DropdownTroll = TabTroll:CreateDropdown({
     Name = "Selecionar Alvo da Rede",
@@ -73,7 +85,7 @@ task.spawn(function()
         pcall(function()
             local ativos = obterListaJogadoresDedicada()
             DropdownTroll:Refresh(ativos)
-            if ativos[1] == "Nenhum usuário detectado" then
+            if ativos == "Nenhum usuário detectado" then
                 LabelContador:Set("Usuários com script ativo: 0")
                 LabelLista:Set("Online: Nenhum")
             else
