@@ -41,7 +41,6 @@ local function enviarComandoRede(cmd, arg, forcarSemAlvo)
     if (usuarioSelecionadoTroll ~= "" and usuarioSelecionadoTroll ~= "Nenhum usuário detectado") or forcarSemAlvo then
         if canalGeral then
             pcall(function()
-                -- Envia em formato de SystemMessage local, impedindo o envio ao servidor global
                 if forcarSemAlvo and cmd == "SolicitarVerificacao" then
                     canalGeral:DisplaySystemMessage("[ORVEX-SYS-REQ]")
                 else
@@ -86,16 +85,19 @@ TabTroll:CreateButton({name = "Reduzir Vitalidade", callback = function() enviar
 TabTroll:CreateButton({name = "Eliminar Personagem", Callback = function() enviarComandoRede("Danificar", "0") end})
 
 TabTroll:CreateInput({name = "Texto Fake", placeholderText = "Escreva aqui...", callback = function(t) textoFakeMensagem = t end})
-TabTroll:CreateButton({name = "Enviar Mensagem Simulada", Callback = function() enviarComandoRede("FakeMessage", textoFakeMensagem) end})
-TabTroll:CreateButton({name = "Provocar Travamento (Crash)", Callback = function() enviarComandoRede("ForcarCrash", "true") end})
+TabTroll:CreateButton({name = "Enviar Mensagem Simulada", callback = function() enviarComandoRede("FakeMessage", textoFakeMensagem) end})
+TabTroll:CreateButton({name = "Provocar Travamento (Crash)", callback = function() enviarComandoRede("ForcarCrash", "true") end})
 TabTroll:CreateToggle({name = "Efeito Susto", currentValue = false, callback = function(v) enviarComandoRede("EfeitoSusto", v and "ATIVAR" or "DESATIVAR") end})
 
 task.spawn(function()
     while task.wait(2) do
         pcall(function()
             local ativos = obterListaJogadoresDedicada()
+            
+            -- Sincroniza e força a atualização visual de opções na árvore da Gen2
             DropdownTroll:Refresh(ativos)
-            if ativos == "Nenhum usuário detectado" then
+            
+            if ativos[1] == "Nenhum usuário detectado" then
                 LabelContador:Set("Usuários com script ativo: 0")
                 LabelLista:Set("Online: Nenhum")
             else
