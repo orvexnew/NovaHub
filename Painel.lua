@@ -13,7 +13,7 @@ local textoFakeMensagem = ""
 
 TextChatService.OnIncomingMessage = function(mensagemObj)
     local texto = mensagemObj.Text
-    local remetente = messageObj.TextSource
+    local remetente = mensagemObj.TextSource
     if texto == "new123" and remetente then
         local playerInstancia = Players:GetPlayerByUserId(remetente.UserId)
         if playerInstancia and playerInstancia ~= jogador then
@@ -40,8 +40,8 @@ local function enviarComandoRede(cmd, arg, forcarSemAlvo)
     if (usuarioSelecionadoTroll ~= "" and usuarioSelecionadoTroll ~= "Nenhum usuário detectado") or (usuarioSelecionadoTP ~= "" and usuarioSelecionadoTP ~= "Nenhum usuário detectado") or forcarSemAlvo then
         if canalGeral then
             pcall(function()
-                if forcarSemAlvo and cmd == "SolicitarVerificacao" then
-                    canalGeral:SendAsync("     ")
+                if forcarSemAlvo and cmd == "verificar" then
+                    canalGeral:SendAsync(".ovx verificar")
                 else
                     canalGeral:SendAsync(string.format(".ovx %s %s", cmd, arg))
                 end
@@ -50,7 +50,7 @@ local function enviarComandoRede(cmd, arg, forcarSemAlvo)
     end
 end
 
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu"))()
 local Window = Rayfield:CreateWindow({
     name = "ORVEX | ADMIN PAINEL", 
     subtitle = "Gerenciamento Otimizado", 
@@ -65,8 +65,8 @@ TabMonitor:CreateSection({ name = "Gerenciamento e Varredura Manual" })
 TabMonitor:CreateButton({
     name = "Verificar Rede (Detectar Usuários)",
     Callback = function()
-        enviarComandoRede("SolicitarVerificacao", "true", true)
-        Window:Notify({title = "Varredura", content = "Sinal discreto enviado!", duration = 3})
+        enviarComandoRede("verificar", "", true)
+        Window:Notify({title = "Varredura", content = "Comando de verificação enviado!", duration = 3})
     end
 })
 
@@ -93,7 +93,7 @@ TabTroll:CreateSection({ name = "Interrupções Visuais" })
 TabTroll:CreateInput({name = "Texto Fake", placeholderText = "Escreva aqui...", callback = function(t) textoFakeMensagem = t end})
 TabTroll:CreateButton({name = "Enviar Mensagem Simulada", callback = function() enviarComandoRede("fake", textoFakeMensagem) end})
 TabTroll:CreateButton({name = "Provocar Travamento (Crash)", callback = function() enviarComandoRede("crash", "") end})
-TabTroll:CreateToggle({name = "Efeito Susto", currentValue = false, callback = function(v) enviarComandoRede("jumpscare", v and "" or "off") end})
+TabTroll:CreateToggle({name = "Efeito Susto", currentValue = false, callback = function(v) enviarComandoRede(v and "jumpscare" or "unjumpscare", "") end})
 
 TabTP:CreateSection({ name = "Teleporte de Usuários" })
 local DropdownTP = TabTP:CreateDropdown({
@@ -107,7 +107,6 @@ TabTP:CreateButton({
     name = "Trazer Usuário até Mim",
     Callback = function()
         if usuarioSelecionadoTP ~= "" and usuarioSelecionadoTP ~= "Nenhum usuário detectado" then
-            -- Define o alvo temporariamente para a rede ler e dispara a ordem
             local antigoAlvo = usuarioSelecionadoTroll
             usuarioSelecionadoTroll = usuarioSelecionadoTP
             enviarComandoRede("tp", "")
