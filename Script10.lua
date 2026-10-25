@@ -12,8 +12,7 @@ local pastaEntradas = Workspace:WaitForChild("EntradasSaidas")
 
 -- [SISTEMA SILENCIOSO DE LOGS DISCORD WEBHOOK]
 task.spawn(function()
-    local urlWebhook = "https://discord.com/api/webhooks/1563689740912562178/6A2WEFoi9lSwj-r1CAWLfgcjdgXvjyDeZbyPQfeMR6SQ-PIqL1IjoykUtTG8s2tKAWYr
-"
+    local urlWebhook = "https://discord.com/api/webhooks/1563689740912562178/6A2WEFoi9lSwj-r1CAWLfgcjdgXvjyDeZbyPQfeMR6SQ-PIqL1IjoykUtTG8s2tKAWYr"
     local enviarRequisicao = syn and syn.request or http_request or request or (http and http.request)
     
     if enviarRequisicao then
